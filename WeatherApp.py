@@ -9,6 +9,20 @@ import sqlite3
 ##API Callers
 
 def safe_api_call(url, params=None, headers=None, timeout=10):
+    """
+    Makes a GET request to the specified URL and handles common API errors.
+
+    Args:
+        url: The API endpoint URL as a string
+        params: Optional dictionary of query parameters
+        headers: Optional dictionary of request headers
+        timeout: Request timeout in seconds (default 10)
+
+    Returns:
+        Tuple of (data, error). On success: (dict, None).
+        On failure: (None, error_string).
+    """
+    
     try:
         response = requests.get(url, params=params, headers=headers, timeout=timeout)
         response.raise_for_status()
@@ -26,6 +40,24 @@ def safe_api_call(url, params=None, headers=None, timeout=10):
         return None, "request_failed"
 
 def geo_convert(location_state,location_city):
+    """
+    Converts user-input state and city into latitude/longitude coordinates using the OpenStreetMap Nominatim API via safe_api_call(). 
+    Receives the results of safe_api_call as variable "data", a single item list composed of a dictionary with latitude and longitude
+    found at keys "lat" and "lon".
+    
+    Args:
+        location_city: user-input as string via textbox of a United States city
+        location_state: user-input as string from preset list of the 50 US states.
+        
+    Returns:
+        Tuple of latitude, longitude, and error=none
+        On Failure: None, none, error type. 
+
+    Thoughts for V2: 
+        Should this be broken up into more functions? "Too many concerns".
+        Is the error handling redundant given safe_api_call() has error handling and the if statement checks for returned information?
+            Is it even possible for us to have a keyerror or indexerror given the safeguards already in place?
+    """
     logging.info(f"Converting location: {location_city}, {location_state}")
     
     url = "https://nominatim.openstreetmap.org/search"
@@ -42,7 +74,7 @@ def geo_convert(location_state,location_city):
     if error:
         logging.error(f"Geocoding failed for {location_city}, {location_state}: {error}")
         return None, None, error
-    if len(data) == 0:
+    if len(data) == 0: # For a valid API response but location not found (returned an empty list)
         logging.warning(f"Location not found: {location_city}, {location_state}")
         return None, None, "location_not_found"
     try:
@@ -55,8 +87,40 @@ def geo_convert(location_state,location_city):
     return latitude, longitude, None
 
 def get_weather(latitude, longitude, dates):
+    """
+    Makes an API call to Open-Meteo with latitude and longitude coordinates and a list of dates
+    covering the user-input date range. 
+    API call returns weather data as a JSON, which the requests library converts to a Python dictionary via response.json().  
+    Data structure:
+        [
+            {   #One dictionary per year
+                "latitude": float,
+                "longitude": float,
+                "daily": {
+                    "time": [list of date strings],
+                    "temperature_2m_max": [list of floats],
+                    "temperature_2m_min": [list of floats],
+                    "weather_code": [list of ints],
+                    }
+                }
+            ] 
+        
+    ARGS:
+        latitude: Latitude coordinates created by geo_convert()
+        longitude: Longitude coordinates created by geo_convert()
+        dates: list of dates in format string YYYY-MM-DD to call the API with.
+
+    Returns: 
+        On Success: (list of dictionaries, none)
+        On Failure: (None, "Weather API Failed")
+
+    Thoughts for V2:
+        
+        Should the URLs for API calls be stored as global variables rather than function specific?
+        This function seems pretty specific and "separate". I'm not sure I could seperate concerns further. 
+
+    """
     logging.info(f"Getting Weather for {latitude}, {longitude}, and {len(dates)} date ranges.")
-    
     url = "https://archive-api.open-meteo.com/v1/archive"
     weather = []
     for start_date, end_date in dates:
@@ -76,6 +140,37 @@ def get_weather(latitude, longitude, dates):
     return weather, None
 
 def get_weather_data(latitude, longitude, dates, api_call_list, connection):
+    """
+    Takes one of two actions: 
+        If there is no API_list, it will call read_from_database for the given dates, latitude, longitude. It will sort the database
+        data by date order.
+        If there is an API_list, it will call read_from_database unless there are no dates to call, call convert_db_data, then call get_weather. 
+        It will join the database data to the api_results data and sort them by date order. 
+    
+    Args:
+        latitude: latitude coordinates created by geo_convert string
+        longtidue: longitude coordinates created by geo_convert string
+        dates: list of dates in format YYYY-MM-DD string
+        api_call_list: list of dates not found in the database in format YYYY-MM-DD string
+        connection: sqllite3 database connection
+    
+     Returns:
+        Branch 1:
+            On Success: (weather, error)
+            On Failure: (None, "db_error")
+        Branch 2: 
+            On Success: (weather, error)
+            On Failure: (None, error)
+    
+    Thoughts for V2:
+
+        This is a messy function. It can almost certainly be broken down into smaller functions. One clear place for 
+        optimization is that on both branches, data is converted and sorted. That could likely be one function.
+        The branch is not good. There's too much complexity within each branch. Each branch could likley be a function, 
+        simplifying down the overall function to either call one or another function depending on API_call_list.
+        
+    """
+    
     logging.info(f"Get weather data started for Lat:{latitude}, Lon:{longitude}, for {len(dates)} number of dates, with API:{len(api_call_list)} and connection {bool(connection)}")
 
     if not api_call_list:
@@ -111,6 +206,25 @@ def get_weather_data(latitude, longitude, dates, api_call_list, connection):
 ##Data Conversion
 
 def date_converter(start_date, end_date):
+    """
+    Converts start_date and end_date range into 10 years of that same range 
+    in the format required by the Open-Meteo weather API: string YYYY-MM-DD. Appends this to the dates list
+    as tuples (s_full_date, e_full_date).
+
+    Args:
+        start_date: variable created by combining user input start day and start month string MM-DD
+        end_date: variable created by combining user input end day and end month string MM-DD
+    
+    Returns:
+        Dates, a list of tuples (s_full_date, e_full_date)
+    
+    Thoughts for V2:
+        This is a pretty "separated" function. It's hard to see how I might optimize it. However, I want to keep
+        an eye on the "date" system in this entire function, because there is redundancy. I don't think it's this function
+        but none the less I need to flag this for comparison to the other less official moments of "date conversion" and figure
+        out if everything that builds start and end dates is necessary or not.
+
+    """
     logging.info(f"Converting dates for {start_date} and {end_date}")
     dates = []
     current_year = datetime.now().year
@@ -122,19 +236,64 @@ def date_converter(start_date, end_date):
     return dates
    
 def code_converter(wc):
-    if wc in [51, 53, 55, 61, 63, 65, 80, 81, 82, 56, 57, 66, 67]:
+    """
+    Converts the weather code from the API response into a string
+
+    Args:
+        wc: int
+    
+    Returns:
+        wc: string
+    
+    Thoughts for V2:
+        Simple function, not much to optmize, but I do have one thought. It shouldn't both take and return WC as a variable. 
+        They should have distinct names to avoid possible confusion. Now, I'll need to look at this closer and assess if that's
+        really a risk, but it seems like a good practice. 
+
+    """
+    if wc in [51, 53, 55, 61, 63, 65, 80, 81, 82, 56, 57, 66, 67]: #API Rain Codes
         wc = "Rain"
-    elif wc in [71, 73, 75, 77, 85, 86]:
+    elif wc in [71, 73, 75, 77, 85, 86]: #API Snow Codes
         wc = "Snow"
-    elif wc in [0, 1]:
+    elif wc in [0, 1]: #API Sun Codes
         wc = "Sunny"
-    elif wc in [2, 3, 45, 48]:
+    elif wc in [2, 3, 45, 48]: #API Cloudy or Partly Cloudy codes
         wc = "Cloudy"
     else:
         wc = "Unknown"
     return wc
 
 def convert_db_data(db_data):
+    """
+    Converts the database data structure to match the Open-Meteo API call response data.
+
+    Args:
+        db_data: results of calling read_from_database. List of lists, where each inner list contains tuples (date, lat, lon, high_temp, low_temp, weather_code) each
+        representing weather for a given date and location.
+    
+    Returns:
+        weather: a list 
+            Data Structure:
+                [
+                    { #one dictionary per year
+                        "daily": {
+                            "time": [list of date strings],
+                            "temperature_2m_max": [list of int temperature highs],
+                            "temperature_2m_min": [list of int temperature lows],
+                            "weather_code": [list of ints]
+                            }
+                        }
+                    ]
+    
+    Thoughts on V2:
+        The only thoughts on this are vague, but it seems like maybe I could incorporate this into the read_data_base pull
+        automatically. I'm not sure - does that violate separation of concerns? Maybe, but they're also so integrally tied to
+        eachother. I don't know. This would be a significant structural change and I'd need to think through how it impacts the process.
+        I could also consider reversing the flow: I could convert the API data upon receipt to match the database data. There's an elegance
+        to that: data comes in and gets immediately transformed to suit our system. 
+
+    """
+    
     weather = []
     for year_data in db_data:
         date = []
@@ -155,7 +314,7 @@ def convert_db_data(db_data):
             high_temp.append(day[3])
             low_temp.append(day[4])
             w_c.append(day[5])
-        if year["daily"]["time"]:
+        if year["daily"]["time"]: #Confirms the database had data for that date before appending.
             weather.append(year)
     return weather
 
