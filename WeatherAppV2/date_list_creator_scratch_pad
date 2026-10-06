@@ -1,0 +1,6 @@
+import weatherappbackV2
+
+full_start_date = "2026-12-28" 
+full_end_date = "2027-01-03"
+results = weatherappbackV2.date_list_creator(full_start_date, full_end_date)
+print(results)

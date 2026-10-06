@@ -1,0 +1,4 @@
+import weatherappbackV2
+
+lat, lon = weatherappbackV2.call_coordinates_api("Morristown", "NJ")
+print(lat,lon)

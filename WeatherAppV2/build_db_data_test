@@ -1,0 +1,13 @@
+import weatherappbackV2
+
+results = [
+    ("2023-07-15", "Chicago", "IL", 88, 70, "Sunny"),
+    ("2023-07-16", "Chicago", "IL", 90, 72, "Partly Cloudy"),
+    ("2024-07-15", "Chicago", "IL", 85, 68, "Cloudy"),
+    ("2024-07-16", "Chicago", "IL", 91, 74, "Sunny"),
+    ("2025-07-15", "Chicago", "IL", 79, 65, "Rainy"),
+]
+
+data = weatherappbackV2.build_db_data(results)
+print(data)
+
