@@ -1,6 +1,7 @@
 import weatherappbackV2
 import api
 import os
+import psycopg2
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -56,7 +57,7 @@ def connect_to_database():
             host="localhost",
             database="weather_app",
             user="postgres",
-            password="os.getenv("WEATHER_DB_PASSWORD")"
+            password=os.getenv("WEATHER_DB_PASSWORD")
 
         )
     except psycopg2.OperationalError as e:
