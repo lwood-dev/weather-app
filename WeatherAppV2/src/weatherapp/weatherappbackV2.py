@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 from datetime import date
 import requests
 from tkinter import messagebox
-import database
-import api
+from weatherapp import database
+from weatherapp import api
 
 # Cap the request window: 10 years × 30 days is already a large API pull,
 # and no realistic user needs a longer seasonal window.

@@ -1,5 +1,5 @@
-import weatherappbackV2
-import database
+from weatherapp import weatherappbackV2
+from weatherapp import database
 
 
 def safe_api(url, params, header):

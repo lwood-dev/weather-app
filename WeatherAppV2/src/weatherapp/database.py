@@ -1,5 +1,5 @@
-import weatherappbackV2
-import api
+from weatherapp import weatherappbackV2
+from weatherapp import api
 import os
 import psycopg2
 from dotenv import load_dotenv
