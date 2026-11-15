@@ -8,6 +8,22 @@ def test_date_list_creator_returns_ten():
     result = date_list_creator("2026-06-01", "2026-06-10")
     assert len(result) == 10
 
+def test_date_list_creator_returns_tuples_with_two_items():
+    result = date_list_creator("2026-06-01", "2026-06-10")
+    for result in result:
+        assert len(result) == 2
+
+def test_date_list_creator_returns_strings():
+    result = date_list_creator("2026-06-01", "2026-06-10")
+    for result in result:
+        assert isinstance (result[0], str) and (result[1], str)
+
+def test_date_list_creator_maintains_date_span():
+    # this might be testing the same principle as preserves_month_day - is span any different?
+    result = date_list_creator("2026-06-01", "2026-06-10")
+    for result in result:
+        assert result[0][5:] == "06-01" and result[1][5:] == "06-10"    
+
 def test_date_list_creator_counts_down_from_this_year():
     result = date_list_creator("2026-06-01", "2026-06-10")
     this_year = datetime.now().year

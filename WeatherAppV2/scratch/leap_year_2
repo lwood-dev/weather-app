@@ -1,0 +1,87 @@
+
+def leap_year_evaluator(date):
+    test_year = int(date[0:4])    
+    if  (((test_year % 4 == 0) and 
+        (test_year % 100 != 0  and test_year % 400 !=0))): 
+        return True
+    else:
+        return False
+
+def leap_fork(date):
+    if date[5:] == "02-29":    
+        if leap_year_evaluator(date):
+            return True
+        else:
+            pass
+            # error:bad date
+    return False
+
+def date_fixer(date, i):
+    date_YYYY = str(int(date[0:4])-i)
+    date_final = date_YYYY + date[0:4]
+    if date_final[5:] == "02-29":
+        if not leap_year_evaluator(date_final):
+            date_final = date_YYYY + "-02-28"
+            return date_final
+    else:
+        return date_final
+
+def date_list_loop(full_start_date, full_end_date):
+    date_list = []
+    for i in range(10):  # current year plus the nine preceding years
+        full_start_date = date_fixer(full_start_date, i)
+        full_end_date = date_fixer(full_end_date, i)
+        date_list.append(full_start_date, full_end_date)
+    return date_list
+
+def leap_year_date_list(full_start_date, full_end_date, x, y, date_list):
+    if x and not y:
+        date_list = date_list_loop(full_start_date, full_end_date, None, date_list)
+    if not x and y:
+        date_list = date_list_loop(None, full_start_date, full_end_date, date_list)    
+    if x and y:
+        date_list = date_list_loop(full_start_date, None, full_end_date, date_list)
+    return date_list
+
+def date_list_creator(full_start_date, full_end_date, year=None):
+    """
+    Expands a single date range into ten yearly ranges — the same calendar
+    window for each of the last ten years.
+
+    Given one "YYYY-MM-DD" start/end range, produces a range for the given year 
+    and each of the nine years before it, keeping the month and day fixed
+    while only the year changes. This is what lets the app compare the same
+    seasonal window across a decade of historical weather.
+
+    Args:
+        full_start_date (str): Start date as "YYYY-MM-DD".
+        full_end_date (str): End date as "YYYY-MM-DD".
+
+    Returns:
+        list: A list of 10 (start_date, end_date) tuples, one per year, most
+              recent year first.
+    """
+    
+    
+    
+    
+    
+    
+    
+    x = leap_fork(full_start_date)
+    y = leap_fork(full_end_date)
+    if x or y:        
+        print("A leap year was detected")
+        date_list = leap_year_date_list(full_start_date, full_end_date, x, y, date_list)    
+    else:
+        for i in range(10):  # current year plus the nine preceding years
+            start_YYYY = str(int(full_start_date[0:4])-i)
+            end_YYYY = str(int(full_end_date[0:4])-i)
+            full_start_date_final = start_YYYY + full_start_date[4:]
+            full_end_date_final = end_YYYY + full_end_date[4:]
+            date_list.append((full_start_date_final, full_end_date_final))
+    return date_list
+
+result =date_list_creator("2028-02-20", "2028-02-29")
+print(result)
+print(len(result))

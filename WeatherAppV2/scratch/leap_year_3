@@ -1,0 +1,32 @@
+def leap_year_evaluator(date):
+    test_year = int(date[0:4])    
+    if  (((test_year % 4 == 0) and 
+        (test_year % 100 != 0  and test_year % 400 !=0))): 
+        return True
+    else:
+        return False
+
+def date_fixer(date, i):
+    date_YYYY = str(int(date[0:4])-i)
+    date_final = date_YYYY + date[4:]
+    if date_final[5:] == "02-29":
+        if not leap_year_evaluator(date_final):
+            date_final = date_YYYY + "-02-28"
+            return date_final
+        else:
+            return date_final
+    else:
+        return date_final
+
+def date_list_creator(full_start_date, full_end_date):
+    date_list = []
+    for i in range(10):  # current year plus the nine preceding years
+        full_start_date_final = date_fixer(full_start_date, i)
+        full_end_date_final = date_fixer(full_end_date, i)
+        date_list.append((full_start_date_final, full_end_date_final))
+    return date_list
+
+
+result =date_list_creator("2000-02-29", "2000-02-29")
+print(result)
+print(len(result))

@@ -39,7 +39,41 @@ class Search:
     
 #Data Processing Logic
 
-def date_list_creator(full_start_date, full_end_date):
+def leap_year_evaluator(full_start_date, full_end_date):
+    start_YYYY = str(int(full_start_date[0:4])-i)
+    end_YYYY = str(int(full_end_date[0:4])-i)
+    #conditional for a leap year
+    if  (((start_YYYY % 4 == 0) and 
+        (start_YYYY % 100 != 0 and start_YYYY % 400 !=0))): 
+        start = True
+    else:
+        start = False
+    if  (((end_YYYY % 4 == 0) and 
+        (end_YYYY % 100 != 0 and end_YYYY % 400 !=0))):
+        end = True
+    else: 
+        end = False
+    return start, end
+
+def leap_year_date_list(full_start_date, full_end_date):
+    if full_start_date[8:] == "29":
+        start_YYYY = str(int(full_start_date[0:4])-i)
+        end_YYYY = str(int(full_end_date[0:4])-i)
+        full_start_date_final = start_YYYY + full_start_date[4:]
+            leap_year_evaluator(full_start_date)
+        full_end_date_final = end_YYYY + full_end_date[4:]
+        date_list.append((full_start_date_final, full_end_date_final))
+    if full_end_date[8:] == "29":
+    for i in range(10):  # current year plus the nine preceding years
+        start_YYYY = str(int(full_start_date[0:4])-i)
+        end_YYYY = str(int(full_end_date[0:4])-i)
+        full_start_date_final = start_YYYY + full_start_date[4:]
+        full_end_date_final = end_YYYY + full_end_date[4:]
+        date_list.append((full_start_date_final, full_end_date_final))
+
+# def leap_year_date_list(): ??? one option
+
+def date_list_creator(full_start_date, full_end_date, year=None):
     """
     Expands a single date range into ten yearly ranges — the same calendar
     window for each of the last ten years.
@@ -58,12 +92,22 @@ def date_list_creator(full_start_date, full_end_date):
               recent year first.
     """
     date_list = []
-    for i in range(10):  # current year plus the nine preceding years
-        start_YYYY = str(int(full_start_date[0:4])-i)
-        end_YYYY = str(int(full_end_date[0:4])-i)
-        full_start_date_final = start_YYYY + full_start_date[4:]
-        full_end_date_final = end_YYYY + full_end_date[4:]
-        date_list.append((full_start_date_final, full_end_date_final))
+    if full_start_date[8:] == "29" or full_end_date[8:] == "29":
+        #detects a Feb 29th date. It's not necessary to create code to know which one. 
+        x, y = leap_year_evaluator(full_start_date, full_end_date)
+        if x or y:
+            date_list = leap_year_date_list(full_start_date, full_end_date)
+        if not x or y:
+            pass
+            # error for false date
+        #run a loop that checks each year against leap_year_evaluator and if it's not a leap year, makes the 29 a 28
+    else:
+        for i in range(10):  # current year plus the nine preceding years
+            start_YYYY = str(int(full_start_date[0:4])-i)
+            end_YYYY = str(int(full_end_date[0:4])-i)
+            full_start_date_final = start_YYYY + full_start_date[4:]
+            full_end_date_final = end_YYYY + full_end_date[4:]
+            date_list.append((full_start_date_final, full_end_date_final))
     return date_list
 
 def date_span_check(start_str, end_str):
